@@ -1,5 +1,5 @@
 from node_graphics_node import GraphicsNode
-
+from node_content_widget import NodeContentWidget
 class Node():
     """
         This is the base class for a node inside the scene.
@@ -9,8 +9,8 @@ class Node():
         self.scene = scene
 
         self.title=title
-
-        self.grNode = GraphicsNode(self, self.title)
+        self.content = NodeContentWidget()
+        self.grNode = GraphicsNode(self)
 
         self.scene.addNode(self)
         self.scene.grScene.addItem(self.grNode)
