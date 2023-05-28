@@ -1,5 +1,9 @@
 from PyQt5.QtWidgets import *
 class NodeContentWidget(QWidget):
+    """
+        Holds the content inside the node.
+        such as bools, text edits, number inputs etc.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
 
