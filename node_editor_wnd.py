@@ -3,7 +3,13 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from node_graphics_scene import GraphicsScene
 from node_graphics_view import GraphicsView
+from node_scene import Scene
+from node_node import Node
 class NodeEditorWnd(QWidget):
+    """
+        This is the main window.
+        It controls window titles, geometry, layouts and is the main parent for all child scene and nodes.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -16,11 +22,13 @@ class NodeEditorWnd(QWidget):
         self.layout.setContentsMargins(0,0,0,0)
         self.setLayout(self.layout)
 
+        self.scene = Scene()
+        node = Node(self.scene, "test node")
         # Create graphics scene
-        self.grScene = GraphicsScene()
+        #self.grScene = self.scene.grScene
 
         # create graphics view
-        self.view = GraphicsView(self.grScene, self)
+        self.view = GraphicsView(self.scene.grScene, self)
         self.layout.addWidget(self.view)
 
         self.setWindowTitle("Node Editor")
@@ -34,6 +42,7 @@ class NodeEditorWnd(QWidget):
         Debug content in the QGraphicScene, proof that widgets work in the scene
         :return:
         """
+        self.grScene = self.scene.grScene
         greenBrush = QBrush(Qt.green)
         outlinePen = QPen(Qt.black)
         outlinePen.setWidth(2)
