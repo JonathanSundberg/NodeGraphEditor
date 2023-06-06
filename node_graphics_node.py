@@ -25,11 +25,16 @@ class GraphicsNode(QGraphicsItem):
         self.title = self.node.title
 
         # init sockets
+        self.initSockets()
 
         # init content
         self.initContent()
 
         self.initUI()
+
+
+    def initSockets(self):
+        pass
 
     def initContent(self):
         self.grContent = QGraphicsProxyWidget(self)
@@ -41,8 +46,8 @@ class GraphicsNode(QGraphicsItem):
         return QRectF(
             0,
             0,
-            2 * self.edge_size * self.width,
-            2 * self.edge_size * self.height
+        self.width,
+        self.height
         ).normalized()
 
     def initUI(self):

@@ -5,6 +5,7 @@ from node_graphics_scene import GraphicsScene
 from node_graphics_view import GraphicsView
 from node_scene import Scene
 from node_node import Node
+from node_socket import Socket
 class NodeEditorWnd(QWidget):
     """
         This is the main window.
@@ -24,7 +25,7 @@ class NodeEditorWnd(QWidget):
         self.setLayout(self.layout)
 
         self.scene = Scene()
-        node = Node(self.scene, "test node")
+        node = Node(self.scene, "test node", inputs=[1,2,3], outputs=[1])
         # Create graphics scene
         #self.grScene = self.scene.grScene
 
@@ -36,7 +37,7 @@ class NodeEditorWnd(QWidget):
 
         self.show()
 
-        self.addDebugContent()
+        #self.addDebugContent()
 
     def addDebugContent(self):
         """
