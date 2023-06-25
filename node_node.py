@@ -45,3 +45,8 @@ class Node():
 
         return x, y
 
+    @property
+    def pos(self):
+        return self.grNode.pos() # QPointF ... pos.x
+    def setPos(self, x, y):
+        self.grNode.setPos(x,y)

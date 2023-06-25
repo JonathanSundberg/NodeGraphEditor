@@ -5,7 +5,8 @@ from node_graphics_scene import GraphicsScene
 from node_graphics_view import GraphicsView
 from node_scene import Scene
 from node_node import Node
-from node_socket import Socket
+from node_edge import Edge
+
 class NodeEditorWnd(QWidget):
     """
         This is the main window.
@@ -25,7 +26,9 @@ class NodeEditorWnd(QWidget):
         self.setLayout(self.layout)
 
         self.scene = Scene()
-        node = Node(self.scene, "test node", inputs=[1,2,3], outputs=[1])
+        self.addNodes()
+
+
         # Create graphics scene
         #self.grScene = self.scene.grScene
 
@@ -38,6 +41,17 @@ class NodeEditorWnd(QWidget):
         self.show()
 
         #self.addDebugContent()
+
+    def addNodes(self):
+        node1 = Node(self.scene, "test node 1", inputs=[1,2,3], outputs=[1])
+        node2 = Node(self.scene, "test node 2", inputs=[1,2,3], outputs=[1])
+        node3 = Node(self.scene, "test node 3", inputs=[1,2,3], outputs=[1])
+        node1.setPos(-350,-250)
+        node2.setPos(-75, 0)
+        node3.setPos(200, -150)
+
+        edge1 = Edge(self.scene, node1.outputs[0], node2.inputs[0])
+        edge1 = Edge(self.scene, node2.outputs[0], node3.inputs[0], type=2)
 
     def addDebugContent(self):
         """
