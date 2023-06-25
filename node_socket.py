@@ -6,12 +6,14 @@ RIGHT_TOP=3
 RIGHT_BOTTOM=4
 class Socket():
 
-    def __init__(self, node, index=0, position=LEFT_TOP):
+    def __init__(self, node, index=0, position=LEFT_TOP, socket_type=1):
         self.node = node
         self.index=index
         self.position = position
-        print(" Socket -- creating with: ", self.index, self.position, "for node: ", self.node)
-        self.grSocket = GraphicsSocket(self.node.grNode)
+        self.socket_type = socket_type
+
+
+        self.grSocket = GraphicsSocket(self.node.grNode, self.socket_type)
 
         self.grSocket.setPos(*self.node.getSocketPosition(index, position))
 
@@ -22,3 +24,6 @@ class Socket():
 
     def setConnectedEdge(self, edge=None):
         self.edge = edge
+
+    def hasEdge(self):
+        return self.edge is not None

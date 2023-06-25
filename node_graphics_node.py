@@ -32,6 +32,9 @@ class GraphicsNode(QGraphicsItem):
 
         self.initUI()
 
+    def mouseMoveEvent(self, event) -> None:
+        super().mouseMoveEvent(event)
+        self.node.updateConnectedEdges()
 
     def initSockets(self):
         pass

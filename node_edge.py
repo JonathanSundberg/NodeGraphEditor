@@ -4,13 +4,16 @@ EDGE_TYPE_DIRECT = 1
 EDGE_TYPE_BEZIER = 2
 
 class Edge:
-    def __init__(self, scene, start_socket, end_socket, type=EDGE_TYPE_DIRECT):
+    def __init__(self, scene, start_socket, end_socket, edge_type=EDGE_TYPE_DIRECT):
 
         self.scene = scene
         self.start_socket = start_socket
         self.end_socket = end_socket
+        self.start_socket.edge = self
+        if self.end_socket is not None:
+            self.end_socket.edge  = self
 
-        self.grEdge = GraphicsEdgeDirect(self) if type==EDGE_TYPE_DIRECT else GraphicsEdgeBezier(self)
+        self.grEdge = GraphicsEdgeDirect(self) if edge_type == EDGE_TYPE_DIRECT else GraphicsEdgeBezier(self)
 
         self.updatePositions()
         print("Edge: ", self.grEdge.posSource, "to ", self.grEdge.posDestination)
@@ -45,6 +48,4 @@ class Edge:
             end_pos[0] += self.end_socket.node.grNode.pos().x()
             end_pos[1] += self.end_socket.node.grNode.pos().y()
             self.grEdge.setDestination(*end_pos)
-        print("SS: ", self.start_socket)
-        print("ES: ", self.end_socket)
         self.grEdge.update()
