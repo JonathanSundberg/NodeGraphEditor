@@ -1,6 +1,15 @@
 from PyQt5.QtWidgets import QGraphicsView
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+
+from node_graphics_socket import GraphicsSocket
+
+MODE_NO_OP = 1
+MODE_EDGE_DRAG = 2
+
+EDGE_DRAG_START_THRESHOLD = 15
+
+
 class GraphicsView(QGraphicsView):
     def __init__(self, grScene, parent=None):
         super().__init__(parent)
@@ -13,8 +22,11 @@ class GraphicsView(QGraphicsView):
         self.zoomStep = 1
         self.zoomRange = [0, 10]
 
+        self.mode = MODE_NO_OP
+
     def initUI(self):
-        self.setRenderHints(QPainter.Antialiasing| QPainter.HighQualityAntialiasing|QPainter.TextAntialiasing|QPainter.SmoothPixmapTransform)
+        self.setRenderHints(
+            QPainter.Antialiasing | QPainter.HighQualityAntialiasing | QPainter.TextAntialiasing | QPainter.SmoothPixmapTransform)
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -50,29 +62,53 @@ class GraphicsView(QGraphicsView):
 
         # fake left mouse click, even though we are holding middle mouse
         fakeEvent = QMouseEvent(event.type(), event.localPos(), event.screenPos(),
-                                Qt.LeftButton, event.buttons()| Qt.LeftButton, event.modifiers())
+                                Qt.LeftButton, event.buttons() | Qt.LeftButton, event.modifiers())
         super().mousePressEvent(fakeEvent)
 
     def middleMouseButtonReleased(self, event):
         # Faking left mouse button release when middle mouse button is released
         fakeEvent = QMouseEvent(event.type(), event.localPos(), event.screenPos(),
-                                Qt.LeftButton, event.buttons()| Qt.LeftButton, event.modifiers())
+                                Qt.LeftButton, event.buttons() | Qt.LeftButton, event.modifiers())
         super().mouseReleaseEvent(fakeEvent)
         self.setDragMode(QGraphicsView.NoDrag)
 
     def leftMouseButtonReleased(self, event):
-        return super().mouseReleaseEvent(event)
+        item = self.getItemAtClick(event)
+
+        if self.mode == MODE_EDGE_DRAG:
+            if self.distanceBetweenClickAndReleaseIsOff(event):
+                res = self.edgeDragEnd(item)
+                if res: return
+
+        super().mouseReleaseEvent(event)
+
     def leftMouseButtonPressed(self, event):
-        return super().mousePressEvent(event)
+        item = self.getItemAtClick(event)
+
+        self.last_lmb_click_scene_pos = self.mapToScene(event.pos())
+
+        if type(item) is GraphicsSocket:
+            if self.mode == MODE_NO_OP:
+                self.mode = MODE_EDGE_DRAG
+                self.edgeDragStart(item)
+                return
+
+        if self.mode == MODE_EDGE_DRAG:
+            res = self.edgeDragEnd(item)
+            if res: return
+
+        super().mousePressEvent(event)
+
     def rightMouseButtonReleased(self, event):
-        return super().mouseReleaseEvent(event)
+        super().mouseReleaseEvent(event)
+
     def rightMouseButtonPressed(self, event):
-        return super().mousePressEvent(event)
+        super().mousePressEvent(event)
 
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         # Calculate our zoom factor
-        zoomOutFactor = 1/self.zoomInFactor
+        zoomOutFactor = 1 / self.zoomInFactor
 
         # Calculate zoom
         if event.angleDelta().y() > 0:
@@ -89,3 +125,27 @@ class GraphicsView(QGraphicsView):
         if not clamped or self.zoomClamp is False:
             self.scale(zoomFactor, zoomFactor)
 
+    def edgeDragEnd(self, item):
+
+        self.mode = MODE_NO_OP
+        print(" END dragging edge")
+
+        if type(item) == GraphicsSocket:
+            print(" assign end socket")
+            return True
+        return False
+
+
+    def edgeDragStart(self, item):
+        print("starting drag")
+
+    def getItemAtClick(self, event):
+        pos = event.pos()
+        obj = self.itemAt(pos)
+        return obj
+
+    def distanceBetweenClickAndReleaseIsOff(self, event):
+        new_lmb_release_scene_pos = self.mapToScene(event.pos())
+        dist_scene = new_lmb_release_scene_pos - self.last_lmb_click_scene_pos
+        edge_drag_threshold_sq = EDGE_DRAG_START_THRESHOLD * EDGE_DRAG_START_THRESHOLD
+        return (dist_scene.x() * dist_scene.x() + dist_scene.y() * dist_scene.y()) > edge_drag_threshold_sq
