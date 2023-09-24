@@ -1,6 +1,13 @@
+import math
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+
+from node_socket import *
+
+
+EDGE_CP_ROUNDNESS = 100
 
 class GraphicsEdge(QGraphicsPathItem):
     def __init__(self, edge, parent=None):
@@ -12,8 +19,11 @@ class GraphicsEdge(QGraphicsPathItem):
         self._color_selected = QColor("#00ff00")
         self._pen = QPen(self._color)
         self._pen_selected = QPen(self._color_selected)
-        self._pen.setWidth(2.0)
-        self._pen_selected.setWidth(2.0)
+        self._pen_dragging = QPen(self._color)
+        self._pen_dragging.setStyle(Qt.DashLine)
+        self._pen.setWidthF(2.0)
+        self._pen_selected.setWidthF(2.0)
+        self._pen_dragging.setWidthF(2.0)
 
 
         self.setFlag(QGraphicsItem.ItemIsSelectable)
@@ -32,7 +42,10 @@ class GraphicsEdge(QGraphicsPathItem):
     def paint(self, painter, option, widget) -> None:
         self.updatePath()
 
-        painter.setPen(self._pen if not self.isSelected() else self._pen_selected)
+        if self.edge.end_socket is None:
+            painter.setPen(self._pen_dragging)
+        else:
+            painter.setPen(self._pen if not self.isSelected() else self._pen_selected)
         painter.setBrush(Qt.NoBrush)
         painter.drawPath(self.path())
 
@@ -55,10 +68,26 @@ class GraphicsEdgeBezier(GraphicsEdge):
         s = self.posSource
         d = self.posDestination
         dist = (d[0] - s[0] * 0.5)
-        if s[0] > d[0]: dist *= -1
+
+        controlpoint_x_source = +dist
+        controlpoint_x_dest = -dist
+        controlpoint_y_source = 0
+        controlpoint_y_dest = 0
+
+        starting_socket_pos = self.edge.start_socket.position
+
+        if(s[0] > d[0] and starting_socket_pos is (RIGHT_TOP, RIGHT_BOTTOM)) or (s[0] < d[0] and starting_socket_pos in (LEFT_BOTTOM, LEFT_TOP)):
+            controlpoint_x_dest *= -1
+            controlpoint_x_source *= -1
+            controlpoint_y_dest = ((s[1] - d[1]) / math.fabs(
+                (s[1] - d[1]) if (s[1] - d[1]) != 0 else 0.001)) * EDGE_CP_ROUNDNESS
+
+            controlpoint_y_source = ((d[1] - s[1]) / math.fabs(
+                (d[1] - s[1]) if (d[1] - s[1]) != 0 else 0.001)) * EDGE_CP_ROUNDNESS
+
 
         path = QPainterPath(QPointF(self.posSource[0], self.posSource[1]))
-        path.cubicTo(s[0] + dist, s[1], d[0] - dist, d[1]
+        path.cubicTo(s[0] + controlpoint_x_source, s[1] +controlpoint_y_source, d[0] + controlpoint_x_dest, d[1] +controlpoint_y_dest
         ,self.posDestination[0], self.posDestination[1])
         self.setPath(path)
 

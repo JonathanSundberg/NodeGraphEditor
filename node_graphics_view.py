@@ -3,10 +3,11 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 from node_graphics_socket import GraphicsSocket
-
+from node_graphics_edge import GraphicsEdge
+from node_edge import Edge, EDGE_TYPE_BEZIER
 MODE_NO_OP = 1
 MODE_EDGE_DRAG = 2
-
+DEBUG = True
 EDGE_DRAG_START_THRESHOLD = 15
 
 
@@ -99,12 +100,32 @@ class GraphicsView(QGraphicsView):
 
         super().mousePressEvent(event)
 
+    def mouseMoveEvent(self, event) -> None:
+        if self.mode == MODE_EDGE_DRAG:
+            pos = self.mapToScene(event.pos())
+            self.dragEdge.grEdge.setDestination(pos.x(), pos.y())
+            self.dragEdge.grEdge.update()
+
+        super().mouseMoveEvent(event)
+
     def rightMouseButtonReleased(self, event):
         super().mouseReleaseEvent(event)
 
     def rightMouseButtonPressed(self, event):
         super().mousePressEvent(event)
 
+        item = self.getItemAtClick(event)
+
+        if DEBUG:
+            if isinstance(item, GraphicsEdge): print("RMB DEBUG: ", item.edge, ' connecting sockets: ',
+                                                     item.edge.start_socket, '<-->', item.edge.end_socket)
+            if isinstance(item, GraphicsSocket): print("RMB DEBUG: ", item.socket, 'has edge:', item.socket.edge)
+            if item is None:
+                print("SCENE: ")
+                print("    Nodes:")
+                for node in self.grScene.scene.nodes: print('        ', node)
+                print("    Edges:")
+                for edge in self.grScene.scene.edges: print('        ', edge)
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         # Calculate our zoom factor
@@ -126,19 +147,39 @@ class GraphicsView(QGraphicsView):
             self.scale(zoomFactor, zoomFactor)
 
     def edgeDragEnd(self, item):
-
         self.mode = MODE_NO_OP
-        print(" END dragging edge")
-
         if type(item) == GraphicsSocket:
-            print(" assign end socket")
+            if DEBUG: print("previous edge: ", self.previous_edge)
+            if item.socket.hasEdge():
+                item.socket.edge.remove()
+            if DEBUG: print(" assign end socket: ", item.socket)
+            if self.previous_edge:
+                self.previous_edge.remove()
+
+            self.dragEdge.start_socket = self.last_start_socket
+            self.dragEdge.end_socket = item.socket
+            self.dragEdge.start_socket.setConnectedEdge(self.dragEdge)
+            self.dragEdge.end_socket.setConnectedEdge(self.dragEdge)
+            if DEBUG: print("assigned start & end sockets to Edge")
+            self.dragEdge.updatePositions()
             return True
+
+        if DEBUG: print(" END dragging edge")
+        self.dragEdge.remove()
+        self.dragEdge = None
+        if DEBUG: print(" about to set socket to previous edge: ", self.previous_edge)
+        if self.previous_edge:
+            self.previous_edge.start_socket.edge = self.previous_edge
         return False
 
 
     def edgeDragStart(self, item):
-        print("starting drag")
-
+        if DEBUG: print("edgeDragStart starting drag edge")
+        if DEBUG: print("    assign start socket to: ", item.socket)
+        self.previous_edge = item.socket.edge
+        self.last_start_socket = item.socket
+        self.dragEdge = Edge(self.grScene.scene, item.socket, None, EDGE_TYPE_BEZIER)
+        if DEBUG: print('dragEdge: ', self.dragEdge)
     def getItemAtClick(self, event):
         pos = event.pos()
         obj = self.itemAt(pos)

@@ -13,11 +13,14 @@ class Socket():
         self.socket_type = socket_type
 
 
-        self.grSocket = GraphicsSocket(self.node.grNode, self.socket_type)
+        self.grSocket = GraphicsSocket(self, self.socket_type)
 
         self.grSocket.setPos(*self.node.getSocketPosition(index, position))
 
         self.edge = None
+
+    def __str__(self):
+        return "<Socket %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
 
     def getSocketPosition(self):
         return self.node.getSocketPosition(self.index, self.position)
