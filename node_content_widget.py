@@ -4,9 +4,9 @@ class NodeContentWidget(QWidget):
         Holds the content inside the node.
         such as bools, text edits, number inputs etc.
     """
-    def __init__(self, parent=None):
+    def __init__(self, node, parent=None):
         super().__init__(parent)
-
+        self.node = node
         self.initUI()
 
     def initUI(self):
@@ -16,4 +16,17 @@ class NodeContentWidget(QWidget):
 
         self.wdg_label = QLabel("Some title")
         self.layout.addWidget(self.wdg_label)
-        self.layout.addWidget(QTextEdit("foo"))
+        self.layout.addWidget(TextEdit("foo"))
+
+    def setEditingFlag(self, value):
+        self.node.scene.grScene.views()[0].editing_flag = value
+
+class TextEdit(QTextEdit):
+
+    def focusInEvent(self, event):
+        self.parentWidget().setEditingFlag(True)
+        super().focusInEvent(event)
+
+    def focusOutEvent(self, event):
+        self.parentWidget().setEditingFlag(False)
+        super().focusOutEvent(event)

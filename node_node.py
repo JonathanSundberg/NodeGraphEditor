@@ -10,7 +10,7 @@ class Node():
         self.scene = scene
 
         self.title=title
-        self.content = NodeContentWidget()
+        self.content = NodeContentWidget(self)
         self.grNode = GraphicsNode(self)
 
         self.scene.addNode(self)
@@ -59,3 +59,11 @@ class Node():
         for socket in self.inputs + self.outputs:
             if socket.hasEdge():
                 socket.edge.updatePositions()
+
+    def remove(self):
+        for socket in (self.inputs+self.outputs):
+            if socket.hasEdge():
+                socket.edge.remove()
+        self.scene.grScene.removeItem(self.grNode)
+        self.grNode = None
+        self.scene.removeNode(self)
