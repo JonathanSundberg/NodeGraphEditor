@@ -32,6 +32,11 @@ class GraphicsEdge(QGraphicsPathItem):
         self.posSource = [0,0]
         self.posDestination = [200,100]
 
+    def intersectsWith(self, p1, p2):
+        cut_path = QPainterPath(p1)
+        cut_path.lineTo(p2)
+        path = self.calcPath()
+        return cut_path.intersects(path)
 
     def setSource(self, x, y):
         self.posSource = [x, y]
@@ -40,7 +45,7 @@ class GraphicsEdge(QGraphicsPathItem):
         self.posDestination = [x, y]
 
     def paint(self, painter, option, widget) -> None:
-        self.updatePath()
+        self.setPath(self.calcPath())
 
         if self.edge.end_socket is None:
             painter.setPen(self._pen_dragging)
@@ -49,7 +54,7 @@ class GraphicsEdge(QGraphicsPathItem):
         painter.setBrush(Qt.NoBrush)
         painter.drawPath(self.path())
 
-    def updatePath(self):
+    def calcPath(self):
         """
         Handles drawing QPainterPath from Point A to B
         """
@@ -57,14 +62,14 @@ class GraphicsEdge(QGraphicsPathItem):
 
 
 class GraphicsEdgeDirect(GraphicsEdge):
-    def updatePath(self):
+    def calcPath(self):
         path = QPainterPath(QPointF(self.posSource[0], self.posSource[1]))
         path.lineTo(self.posDestination[0], self.posDestination[1])
-        self.setPath(path)
+        return path
 
 
 class GraphicsEdgeBezier(GraphicsEdge):
-    def updatePath(self):
+    def calcPath(self):
         s = self.posSource
         d = self.posDestination
         dist = (d[0] - s[0] * 0.5)
@@ -89,5 +94,5 @@ class GraphicsEdgeBezier(GraphicsEdge):
         path = QPainterPath(QPointF(self.posSource[0], self.posSource[1]))
         path.cubicTo(s[0] + controlpoint_x_source, s[1] +controlpoint_y_source, d[0] + controlpoint_x_dest, d[1] +controlpoint_y_dest
         ,self.posDestination[0], self.posDestination[1])
-        self.setPath(path)
+        return path
 

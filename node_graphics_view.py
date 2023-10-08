@@ -1,12 +1,14 @@
-from PyQt5.QtWidgets import QGraphicsView
+from PyQt5.QtWidgets import QGraphicsView, QApplication
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 from node_graphics_socket import GraphicsSocket
 from node_graphics_edge import GraphicsEdge
 from node_edge import Edge, EDGE_TYPE_BEZIER
+from node_graphics_cutline import CutLine
 MODE_NO_OP = 1
 MODE_EDGE_DRAG = 2
+MODE_EDGE_CUT = 3
 DEBUG = True
 EDGE_DRAG_START_THRESHOLD = 15
 
@@ -25,6 +27,10 @@ class GraphicsView(QGraphicsView):
 
         self.mode = MODE_NO_OP
         self.editing_flag = False
+
+        # cutline
+        self.cutline = CutLine()
+        self.grScene.addItem(self.cutline)
 
     def initUI(self):
         self.setRenderHints(
@@ -92,6 +98,14 @@ class GraphicsView(QGraphicsView):
                 res = self.edgeDragEnd(item)
                 if res: return
 
+        if self.mode == MODE_EDGE_CUT:
+            self.cutIntersectingEdges()
+            self.cutline.line_points = []
+            self.cutline.update()
+            QApplication.setOverrideCursor(Qt.ArrowCursor)
+            self.mode = MODE_NO_OP
+            return
+
         super().mouseReleaseEvent(event)
 
     def leftMouseButtonPressed(self, event):
@@ -99,12 +113,14 @@ class GraphicsView(QGraphicsView):
 
         self.last_lmb_click_scene_pos = self.mapToScene(event.pos())
 
+        modifiers = QApplication.keyboardModifiers()
+
         if hasattr(item, "node") or isinstance(item, GraphicsEdge) or item is None:
-            if event.modifiers() and Qt.ShiftModifier:
+            if event.modifiers() and modifiers == Qt.ShiftModifier:
                 event.ignore()
-                fakeEvent = QMouseEvent(QEvent.MouseButtonPress, event.localPos(), event.screenPos(), Qt.LeftButton, event.buttons() or Qt.LeftButton,
+                fake_event = QMouseEvent(QEvent.MouseButtonPress, event.localPos(), event.screenPos(), Qt.LeftButton, event.buttons() or Qt.LeftButton,
                                         event.modifiers() and Qt.ControlModifier)
-                super().mousePressEvent(fakeEvent)
+                super().mousePressEvent(fake_event)
                 return
 
         if type(item) is GraphicsSocket:
@@ -117,6 +133,15 @@ class GraphicsView(QGraphicsView):
             res = self.edgeDragEnd(item)
             if res: return
 
+        if item is None:
+            if event.modifiers() and modifiers == Qt.ControlModifier:
+                self.mode = MODE_EDGE_CUT
+                fake_event = QMouseEvent(QEvent.MouseButtonRelease, event.localPos(), event.screenPos(),
+                                         Qt.LeftButton, Qt.NoButton, event.modifiers())
+                super().mouseReleaseEvent(fake_event)
+                QApplication.setOverrideCursor(Qt.CrossCursor)
+                return
+
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
@@ -124,6 +149,11 @@ class GraphicsView(QGraphicsView):
             pos = self.mapToScene(event.pos())
             self.dragEdge.grEdge.setDestination(pos.x(), pos.y())
             self.dragEdge.grEdge.update()
+
+        if self.mode == MODE_EDGE_CUT:
+            pos = self.mapToScene(event.pos())
+            self.cutline.line_points.append(pos)
+            self.cutline.update()
 
         super().mouseMoveEvent(event)
 
@@ -227,3 +257,13 @@ class GraphicsView(QGraphicsView):
                 item.edge.remove()
             elif hasattr(item, 'node'):
                 item.node.remove()
+
+    def cutIntersectingEdges(self):
+
+        for i in range(len(self.cutline.line_points) -1):
+            p1 = self.cutline.line_points[i]
+            p2 = self.cutline.line_points[i+1]
+
+            for edge in self.grScene.scene.edges:
+                if edge.grEdge.intersectsWith(p1,p2):
+                    edge.remove()
